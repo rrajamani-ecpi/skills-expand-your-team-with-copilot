@@ -455,8 +455,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Apply difficulty filter
       if (currentDifficulty !== "") {
-        const activityDifficulty = details.difficulty_level || "";
-        if (activityDifficulty !== "" && activityDifficulty !== currentDifficulty) {
+        const activityDifficulty = details.difficulty_level;
+        if (activityDifficulty && activityDifficulty !== currentDifficulty) {
           return;
         }
       }
