@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
+  let sharedActivityName = getSharedActivityNameFromUrl();
+  let hasFocusedSharedActivity = false;
 
   // Authentication state
   let currentUser = null;
@@ -50,6 +52,78 @@ document.addEventListener("DOMContentLoaded", () => {
     afternoon: { start: "15:00", end: "18:00" }, // After school hours
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
+
+  function getSharedActivityNameFromUrl() {
+    return new URLSearchParams(window.location.search).get("activity");
+  }
+
+  function buildActivityShareUrl(activityName) {
+    const shareUrl = new URL(window.location.href);
+    shareUrl.search = "";
+    shareUrl.hash = "";
+    shareUrl.searchParams.set("activity", activityName);
+    return shareUrl.toString();
+  }
+
+  function buildShareDetails(activityName, details) {
+    const shareUrl = buildActivityShareUrl(activityName);
+    const shareText = `Check out ${activityName} at Mergington High School! ${details.description} ${formatSchedule(details)}.`;
+
+    return {
+      title: `${activityName} | Mergington High School`,
+      text: shareText,
+      url: shareUrl,
+    };
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const fallbackInput = document.createElement("textarea");
+    fallbackInput.value = text;
+    fallbackInput.setAttribute("readonly", "");
+    fallbackInput.style.position = "absolute";
+    fallbackInput.style.left = "-9999px";
+    document.body.appendChild(fallbackInput);
+    fallbackInput.select();
+    document.execCommand("copy");
+    document.body.removeChild(fallbackInput);
+  }
+
+  async function shareActivity(details) {
+    if (navigator.share) {
+      await navigator.share(details);
+      return true;
+    }
+
+    await copyText(`${details.text} ${details.url}`);
+    return false;
+  }
+
+  function focusSharedActivity() {
+    if (!sharedActivityName || hasFocusedSharedActivity) {
+      return;
+    }
+
+    const sharedActivityCard = activitiesList.querySelector(
+      `[data-activity-name="${sharedActivityName}"]`
+    );
+
+    if (!sharedActivityCard) {
+      return;
+    }
+
+    sharedActivityCard.classList.add("shared-activity-active");
+    sharedActivityCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    hasFocusedSharedActivity = true;
+
+    setTimeout(() => {
+      sharedActivityCard.classList.remove("shared-activity-active");
+    }, 2500);
+  }
 
   // Initialize filters from active elements
   function initializeFilters() {
@@ -470,12 +544,19 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.entries(filteredActivities).forEach(([name, details]) => {
       renderActivityCard(name, details);
     });
+
+    focusSharedActivity();
   }
 
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
     activityCard.className = "activity-card";
+    activityCard.dataset.activityName = name;
+
+    if (name === sharedActivityName) {
+      activityCard.classList.add("shared-activity");
+    }
 
     // Calculate spots and capacity
     const totalSpots = details.max_participants;
@@ -568,6 +649,32 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="activity-share-buttons">
+          <button
+            class="share-button"
+            data-share-type="native"
+            data-activity="${name}"
+            aria-label="Share ${name}"
+          >
+            Share
+          </button>
+          <button
+            class="share-button"
+            data-share-type="copy"
+            data-activity="${name}"
+            aria-label="Copy link for ${name}"
+          >
+            Copy Link
+          </button>
+          <button
+            class="share-button"
+            data-share-type="email"
+            data-activity="${name}"
+            aria-label="Email ${name}"
+          >
+            Email
+          </button>
+        </div>
       </div>
     `;
 
@@ -586,6 +693,44 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    const shareButtons = activityCard.querySelectorAll(".share-button");
+    shareButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        const shareType = button.dataset.shareType;
+        const shareDetails = buildShareDetails(name, details);
+
+        try {
+          if (shareType === "copy") {
+            await copyText(shareDetails.url);
+            showMessage(`Link copied for ${name}.`, "success");
+            return;
+          }
+
+          if (shareType === "email") {
+            const emailUrl = `mailto:?subject=${encodeURIComponent(
+              shareDetails.title
+            )}&body=${encodeURIComponent(
+              `${shareDetails.text}\n\n${shareDetails.url}`
+            )}`;
+            window.location.href = emailUrl;
+            showMessage(`Email draft ready for ${name}.`, "info");
+            return;
+          }
+
+          const usedNativeShare = await shareActivity(shareDetails);
+          showMessage(
+            usedNativeShare
+              ? `Sharing ${name}.`
+              : `Share details copied for ${name}.`,
+            "success"
+          );
+        } catch (error) {
+          console.error("Error sharing activity:", error);
+          showMessage("Unable to share this activity right now.", "error");
+        }
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
