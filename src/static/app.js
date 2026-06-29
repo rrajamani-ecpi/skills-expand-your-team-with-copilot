@@ -27,22 +27,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Dark mode toggle
   const themeToggle = document.getElementById("theme-toggle");
-  const savedTheme = localStorage.getItem("theme") || "light";
-  if (savedTheme === "dark") {
-    document.documentElement.setAttribute("data-theme", "dark");
-    themeToggle.textContent = "☀️";
-  }
-  themeToggle.addEventListener("click", () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    if (isDark) {
-      document.documentElement.removeAttribute("data-theme");
-      themeToggle.textContent = "🌙";
-      localStorage.setItem("theme", "light");
-    } else {
+
+  function setTheme(theme) {
+    if (theme === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
       themeToggle.textContent = "☀️";
-      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      themeToggle.textContent = "🌙";
     }
+    localStorage.setItem("theme", theme);
+  }
+
+  setTheme(localStorage.getItem("theme") || "light");
+
+  themeToggle.addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    setTheme(isDark ? "light" : "dark");
   });
 
   // Activity categories with corresponding colors
