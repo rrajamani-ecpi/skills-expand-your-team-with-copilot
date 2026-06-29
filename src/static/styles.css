@@ -206,7 +206,8 @@ section h3 {
 }
 
 .share-button:hover {
-  background-color: #e8eaf6;
+  background-color: var(--primary-light);
+  color: var(--primary-text);
 }
 
 .auth-notice {

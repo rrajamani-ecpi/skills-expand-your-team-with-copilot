@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const closeLoginModal = document.querySelector(".close-login-modal");
   const loginMessage = document.getElementById("login-message");
+  const schoolName = "Mergington High School";
 
   // Activity categories with corresponding colors
   const activityTypes = {
@@ -67,10 +68,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function buildShareDetails(activityName, details) {
     const shareUrl = buildActivityShareUrl(activityName);
-    const shareText = `Check out ${activityName} at Mergington High School! ${details.description} ${formatSchedule(details)}.`;
+    const shareText = `Check out ${activityName} at ${schoolName}! ${details.description} ${formatSchedule(details)}.`;
 
     return {
-      title: `${activityName} | Mergington High School`,
+      title: `${activityName} | ${schoolName}`,
       text: shareText,
       url: shareUrl,
     };
